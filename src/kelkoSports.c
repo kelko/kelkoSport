@@ -148,10 +148,10 @@ void handle_tick(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
 	
 	if (currentTimer > 0) {
 		timerHandle = app_timer_send_event(appContext, 1000, 0);
-	} else {
-	
+
+	} else {	
 		vibes_long_pulse();		
-		switchToMode(currentMode +1);
+		switchToMode((currentMode +1) % 4);
 	}
 }
 
