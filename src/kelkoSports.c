@@ -134,11 +134,11 @@ void handle_init(AppContextRef ctx) {
 void handle_tick(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
 	currentTimer--;
   
-  	if (currentTimer == 5) {
-  		vibes_short_pulse();
+  	if (currentTimer == 15) {
+  		vibes_double_pulse();
   		
   	} else if (currentTimer == 5) {
-  		vibes_double_pulse();
+  		vibes_short_pulse();
   	}
   
 	if (currentTimer < 5 || currentTimer % 5 == 0) {
