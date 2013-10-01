@@ -22,7 +22,6 @@ mode currentMode = ModeIdle;
 
 int prepareLength = 5;
 int sportLength = 45;
-int pauseLength = 90;
 int currentTimer = 0;
 
 AppTimerHandle timerHandle;
@@ -65,7 +64,7 @@ void switchToMode(mode newMode) {
 		
 		case ModePause:
 			text_layer_set_text(&mode_text_layer, "Pause");
-			currentTimer = pauseLength;
+			currentTimer = sportLength + sportLength;
 			startTimer();
 		break;
 	}
@@ -91,7 +90,7 @@ void restartPrepare(ClickRecognizerRef recognizer, Window *window) {
 
 void doublePause(ClickRecognizerRef recognizer, Window *window) {
 	if (currentMode == ModePause) {
-		currentTimer += pauseLength;
+		currentTimer += sportLength;
 		updateClock();
 	}
 }
