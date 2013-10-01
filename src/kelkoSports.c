@@ -6,7 +6,7 @@
 #define MY_UUID { 0x21, 0x3F, 0x86, 0x5E, 0x48, 0x3F, 0x4C, 0xE7, 0x80, 0x08, 0x68, 0xEE, 0xF2, 0x18, 0xE1, 0x1F }
 PBL_APP_INFO(MY_UUID,
              "kelko's sport cycle", ":kelko:",
-             1, 1, /* App version */
+             1, 2, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_STANDARD_APP);
 
@@ -15,6 +15,7 @@ AppContextRef appContext;
 Window window;
 TextLayer mode_text_layer;
 TextLayer timer_layer;
+TextLayer sportLength_text_layer;
 InverterLayer polish_layer;
 
 typedef enum MODES { ModeIdle, ModePrepare, ModeSport, ModePause } mode;
@@ -25,6 +26,12 @@ int sportLength = 45;
 int currentTimer = 0;
 
 AppTimerHandle timerHandle;
+
+void udpateSportLengthDisplay() {
+	char* formattedLengthDisplay = "45 sec.";
+	snprintf(formattedLengthDisplay, 8, "%02d sec.", sportLength);
+	text_layer_set_text(&sportLength_text_layer, formattedLengthDisplay);	
+}
 
 void updateClock() {
 	char* formattedClockDisplay = "9999";
@@ -85,20 +92,24 @@ void switchToNextMode(ClickRecognizerRef recognizer, Window *window) {
 void restartPrepare(ClickRecognizerRef recognizer, Window *window) {
 	if (currentMode == ModePrepare || currentMode == ModeSport) {
 		switchToMode(ModePrepare);
+		
+	} else if (currentMode == ModePause) {
+		currentTimer += sportLength;
+		updateClock();
 	}
 }
 
-void doublePause(ClickRecognizerRef recognizer, Window *window) {
-	if (currentMode == ModePause) {
-		currentTimer += sportLength;
-		updateClock();
+void switchSportLength(ClickRecognizerRef recognizer, Window *window) {
+	if (currentMode == ModeIdle || currentMode == ModePause) {
+		sportLength = (sportLength == 45) ? 30 : 45;
+		udpateSportLengthDisplay();
 	}
 }
 
 void config_provider(ClickConfig **config, Window *window) {
   config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) switchToNextMode;  
   config[BUTTON_ID_UP]->click.handler = (ClickHandler) restartPrepare;  
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) doublePause;
+  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) switchSportLength;
   
   (void)window;
 }
@@ -120,6 +131,12 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_text(&timer_layer, "---");
 	text_layer_set_font(&timer_layer, fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49));
 	layer_add_child(&window.layer, &timer_layer.layer);
+	
+	text_layer_init(&sportLength_text_layer, GRect(0, 132, 144, 30));
+	text_layer_set_text_alignment(&sportLength_text_layer, GTextAlignmentRight);
+	text_layer_set_text(&sportLength_text_layer, "45 sec.");
+	text_layer_set_font(&sportLength_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+	layer_add_child(&window.layer, &sportLength_text_layer.layer);
 	
 	inverter_layer_init(&polish_layer, GRect(0,0 , 144, 168));
 	layer_add_child(&window.layer, &polish_layer.layer);
