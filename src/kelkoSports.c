@@ -42,17 +42,17 @@ void startTimer() {
 }
 
 void switchToMode(mode newMode) {
+	stopCurrentTimer();
 
 	currentMode = newMode;
 	switch(newMode) {
 		case ModeIdle:
 			text_layer_set_text(&mode_text_layer, "Idle");
 			currentTimer = 0;
-			stopCurrentTimer();
 		break;
 		
 		case ModePrepare:
-			text_layer_set_text(&mode_text_layer, "Preparing");
+			text_layer_set_text(&mode_text_layer, "Prepare");
 			currentTimer = prepareLength;
 			startTimer();
 		break;
@@ -85,7 +85,6 @@ void switchToNextMode(ClickRecognizerRef recognizer, Window *window) {
 
 void restartPrepare(ClickRecognizerRef recognizer, Window *window) {
 	if (currentMode == ModePrepare || currentMode == ModeSport) {
-		stopCurrentTimer();
 		switchToMode(ModePrepare);
 	}
 }
