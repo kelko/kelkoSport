@@ -5,8 +5,8 @@
 
 #define MY_UUID { 0x21, 0x3F, 0x86, 0x5E, 0x48, 0x3F, 0x4C, 0xE7, 0x80, 0x08, 0x68, 0xEE, 0xF2, 0x18, 0xE1, 0x1F }
 PBL_APP_INFO(MY_UUID,
-             "kelko Sport", ":kelko:",
-             1, 0, /* App version */
+             "kelko's sport cycle", ":kelko:",
+             1, 1, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_STANDARD_APP);
 
@@ -106,7 +106,7 @@ void config_provider(ClickConfig **config, Window *window) {
 void handle_init(AppContextRef ctx) {
 	appContext = ctx;
 
-	window_init(&window, "kelko Sport");
+	window_init(&window, "kelko's sport cycle");
 	window_stack_push(&window, true /* Animated */);
 	
 	text_layer_init(&mode_text_layer, GRect(8, 8, 128, 30));
