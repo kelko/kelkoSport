@@ -1,0 +1,17 @@
+{
+  "uuid": "ee13f211-0741-4716-a3aa-8d7f9ced0b74",
+  "shortName": "kelko's sport cycle",
+  "longName": "kelko's sport cycle",
+  "companyName": ":kelko:",
+  "versionCode": 1.5,
+  "versionLabel": "1.5.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}

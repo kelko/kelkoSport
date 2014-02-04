@@ -1,22 +1,10 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 
-
-#define MY_UUID { 0x21, 0x3F, 0x86, 0x5E, 0x48, 0x3F, 0x4C, 0xE7, 0x80, 0x08, 0x68, 0xEE, 0xF2, 0x18, 0xE1, 0x1F }
-PBL_APP_INFO(MY_UUID,
-             "kelko's sport cycle", ":kelko:",
-             1, 2, /* App version */
-             DEFAULT_MENU_ICON,
-             APP_INFO_STANDARD_APP);
-
-AppContextRef appContext;
-
-Window window;
-TextLayer mode_text_layer;
-TextLayer timer_layer;
-TextLayer sportLength_text_layer;
-InverterLayer polish_layer;
+Window* window;
+TextLayer* mode_text_layer;
+TextLayer* timer_layer;
+TextLayer* sportLength_text_layer;
+InverterLayer* polish_layer;
 
 typedef enum MODES { ModeIdle, ModePrepare, ModeSport, ModePause } mode;
 mode currentMode = ModeIdle;
@@ -25,26 +13,27 @@ int prepareLength = 5;
 int sportLength = 45;
 int currentTimer = 0;
 
-AppTimerHandle timerHandle;
+AppTimer* timerHandle;
+void handle_tick(void* cookie);
 
 void udpateSportLengthDisplay() {
 	char* formattedLengthDisplay = "45 sec.";
 	snprintf(formattedLengthDisplay, 8, "%02d sec.", sportLength);
-	text_layer_set_text(&sportLength_text_layer, formattedLengthDisplay);	
+	text_layer_set_text(sportLength_text_layer, formattedLengthDisplay);	
 }
 
 void updateClock() {
 	char* formattedClockDisplay = "9999";
 	snprintf(formattedClockDisplay, 4, "%03d ", currentTimer);
-	text_layer_set_text(&timer_layer, formattedClockDisplay);
+	text_layer_set_text(timer_layer, formattedClockDisplay);
 }
 
 void stopCurrentTimer() {
-	app_timer_cancel_event(appContext, timerHandle);
+	app_timer_cancel(timerHandle);
 }
 
 void startTimer() {
-	timerHandle = app_timer_send_event(appContext, 1000, 0);
+	timerHandle = app_timer_register(1000, handle_tick, 0);
 }
 
 void switchToMode(mode newMode) {
@@ -53,24 +42,24 @@ void switchToMode(mode newMode) {
 	currentMode = newMode;
 	switch(newMode) {
 		case ModeIdle:
-			text_layer_set_text(&mode_text_layer, "Idle");
+			text_layer_set_text(mode_text_layer, "Idle");
 			currentTimer = 0;
 		break;
 		
 		case ModePrepare:
-			text_layer_set_text(&mode_text_layer, "Prepare");
+			text_layer_set_text(mode_text_layer, "Prepare");
 			currentTimer = prepareLength;
 			startTimer();
 		break;
 		
 		case ModeSport:
-			text_layer_set_text(&mode_text_layer, "Go!");
+			text_layer_set_text(mode_text_layer, "Go!");
 			currentTimer = sportLength;
 			startTimer();
 		break;
 		
 		case ModePause:
-			text_layer_set_text(&mode_text_layer, "Pause");
+			text_layer_set_text(mode_text_layer, "Pause");
 			currentTimer = sportLength + sportLength;
 			startTimer();
 		break;
@@ -79,7 +68,7 @@ void switchToMode(mode newMode) {
 	updateClock();
 }
 
-void switchToNextMode(ClickRecognizerRef recognizer, Window *window) {
+void switchToNextMode(ClickRecognizerRef recognizer, void *context) {
 	if (currentMode == ModeIdle || currentMode == ModePause) {
 		switchToMode(ModePrepare);
 		
@@ -89,7 +78,7 @@ void switchToNextMode(ClickRecognizerRef recognizer, Window *window) {
 	}
 }
 
-void restartPrepare(ClickRecognizerRef recognizer, Window *window) {
+void restartPrepare(ClickRecognizerRef recognizer, void *context) {
 	if (currentMode == ModePrepare || currentMode == ModeSport) {
 		switchToMode(ModePrepare);
 		
@@ -99,55 +88,54 @@ void restartPrepare(ClickRecognizerRef recognizer, Window *window) {
 	}
 }
 
-void switchSportLength(ClickRecognizerRef recognizer, Window *window) {
+void switchSportLength(ClickRecognizerRef recognizer, void *context) {
 	if (currentMode == ModeIdle || currentMode == ModePause) {
 		sportLength = (sportLength == 45) ? 30 : 45;
 		udpateSportLengthDisplay();
 	}
 }
 
-void config_provider(ClickConfig **config, Window *window) {
-  config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) switchToNextMode;  
-  config[BUTTON_ID_UP]->click.handler = (ClickHandler) restartPrepare;  
-  config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) switchSportLength;
-  
-  (void)window;
+
+static void click_config_provider(void *context) {
+  window_single_click_subscribe(BUTTON_ID_SELECT, switchToNextMode);
+  window_single_click_subscribe(BUTTON_ID_UP, restartPrepare);
+  window_single_click_subscribe(BUTTON_ID_DOWN, switchSportLength);
 }
 
-void handle_init(AppContextRef ctx) {
-	appContext = ctx;
+static void window_load(Window *window) {
+	Layer *window_layer = window_get_root_layer(window);
+	
+	mode_text_layer = text_layer_create( (GRect) { .origin = {8, 8}, .size = { 128, 30} });
+	text_layer_set_text_alignment(mode_text_layer, GTextAlignmentLeft);
+	text_layer_set_text(mode_text_layer, "---");
+	text_layer_set_font(mode_text_layer, fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21));
+	layer_add_child(window_layer, text_layer_get_layer(mode_text_layer));
+	
+	timer_layer = text_layer_create( (GRect) { .origin = {0, 44}, .size = { 140, 120} });
+	text_layer_set_text_alignment(timer_layer, GTextAlignmentCenter);
+	text_layer_set_text(timer_layer, "---");
+	text_layer_set_font(timer_layer, fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49));
+	layer_add_child(window_layer, text_layer_get_layer(timer_layer));
+	
+	sportLength_text_layer = text_layer_create( (GRect) { .origin = {0, 132}, .size = { 144, 30} });
+	text_layer_set_text_alignment(sportLength_text_layer, GTextAlignmentRight);
+	text_layer_set_text(sportLength_text_layer, "45 sec.");
+	text_layer_set_font(sportLength_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+	layer_add_child(window_layer, text_layer_get_layer(sportLength_text_layer));
+	
+	polish_layer = inverter_layer_create(GRect(0,0 , 144, 168));
+	layer_add_child(window_layer, inverter_layer_get_layer(polish_layer));
 
-	window_init(&window, "kelko's sport cycle");
-	window_stack_push(&window, true /* Animated */);
-	
-	text_layer_init(&mode_text_layer, GRect(8, 8, 128, 30));
-	text_layer_set_text_alignment(&mode_text_layer, GTextAlignmentLeft);
-	text_layer_set_text(&mode_text_layer, "---");
-	text_layer_set_font(&mode_text_layer, fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21));
-	layer_add_child(&window.layer, &mode_text_layer.layer);
-	
-	text_layer_init(&timer_layer, GRect(0, 44, 144, 120));
-	text_layer_set_text_alignment(&timer_layer, GTextAlignmentCenter);
-	text_layer_set_text(&timer_layer, "---");
-	text_layer_set_font(&timer_layer, fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49));
-	layer_add_child(&window.layer, &timer_layer.layer);
-	
-	text_layer_init(&sportLength_text_layer, GRect(0, 132, 144, 30));
-	text_layer_set_text_alignment(&sportLength_text_layer, GTextAlignmentRight);
-	text_layer_set_text(&sportLength_text_layer, "45 sec.");
-	text_layer_set_font(&sportLength_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-	layer_add_child(&window.layer, &sportLength_text_layer.layer);
-	
-	inverter_layer_init(&polish_layer, GRect(0,0 , 144, 168));
-	layer_add_child(&window.layer, &polish_layer.layer);
-		
-	window_set_click_config_provider(&window, (ClickConfigProvider) config_provider);
-	
 	switchToMode(ModeIdle);	
 }
 
+static void window_unload(Window *window) {
+  text_layer_destroy(mode_text_layer);
+  text_layer_destroy(timer_layer);
+  text_layer_destroy(sportLength_text_layer);
+}
 
-void handle_tick(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
+void handle_tick(void* cookie) {
 	currentTimer--;
   
   	if (currentTimer == 15) {
@@ -162,7 +150,7 @@ void handle_tick(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
 	}
 	
 	if (currentTimer > 0) {
-		timerHandle = app_timer_send_event(appContext, 1000, 0);
+		timerHandle = app_timer_register(1000, handle_tick, 0);
 
 	} else {	
 		vibes_long_pulse();		
@@ -170,10 +158,26 @@ void handle_tick(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
 	}
 }
 
-void pbl_main(void *params) {
-	PebbleAppHandlers handlers = {
-		.init_handler = &handle_init,
-		.timer_handler = &handle_tick
-	};
-	app_event_loop(params, &handlers);
+static void init(void) {
+  window = window_create();
+  window_set_click_config_provider(window, click_config_provider);
+  window_set_window_handlers(window, (WindowHandlers) {
+    .load = window_load,
+    .unload = window_unload,
+  });
+  const bool animated = true;
+  window_stack_push(window, animated);
+}
+
+static void deinit(void) {
+  window_destroy(window);
+}
+
+int main(void) {
+  init();
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
+
+  app_event_loop();
+  deinit();
 }
